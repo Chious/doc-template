@@ -1,0 +1,13 @@
+@startuml example
+actor User
+participant "Login Page" as Page
+participant "Auth Service" as Auth
+participant "Database" as DB
+
+User -> Page : 輸入帳密
+Page -> Auth : 傳送帳密
+Auth -> DB : 查詢使用者資料
+DB --> Auth : 回傳資料
+Auth --> Page : 驗證結果
+Page --> User : 顯示登入成功/失敗
+@enduml
