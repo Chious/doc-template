@@ -1,0 +1,126 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "path": "line-audio",
+        "options": {}
+      },
+      "id": "Webhook",
+      "name": "LINE Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$json[\"audioUrl\"]}}",
+        "responseFormat": "file",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "Download Audio",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "const file = items[0].binary.data;\nreturn [\n  {\n    binary: {\n      data: file\n    },\n    json: {}\n  }\n];"
+      },
+      "id": "Pass Audio",
+      "name": "Pass Audio",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "jsonParameters": false,
+        "options": {},
+        "bodyContentType": "multipart-form-data",
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "file",
+              "value": "={{$binary.data}}"
+            },
+            {
+              "name": "model",
+              "value": "whisper-1"
+            }
+          ]
+        },
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENAI_API_KEY"
+            }
+          ]
+        }
+      },
+      "id": "Whisper Transcribe",
+      "name": "Whisper Transcribe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "resource": "page",
+        "operation": "create",
+        "databaseId": "YOUR_NOTION_DATABASE_ID",
+        "properties": {
+          "Title": {
+            "title": [
+              {
+                "text": {
+                  "content": "會議逐字稿"
+                }
+              }
+            ]
+          },
+          "Content": {
+            "rich_text": [
+              {
+                "text": {
+                  "content": "={{ $json.text }}"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "id": "Save to Notion",
+      "name": "Save to Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 1,
+      "position": [1000, 200],
+      "credentials": {
+        "notionApi": {
+          "id": "YOUR_NOTION_CREDENTIAL_ID",
+          "name": "Notion Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "LINE Webhook": {
+      "main": [["Download Audio"]]
+    },
+    "Download Audio": {
+      "main": [["Pass Audio"]]
+    },
+    "Pass Audio": {
+      "main": [["Whisper Transcribe"]]
+    },
+    "Whisper Transcribe": {
+      "main": [["Save to Notion"]]
+    }
+  }
+}
